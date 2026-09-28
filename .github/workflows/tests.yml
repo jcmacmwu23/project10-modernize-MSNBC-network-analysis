@@ -1,0 +1,26 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    defaults:
+      run:
+        working-directory: modern/msnbc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m pytest
+      - run: |
+          mkdir -p data/raw
+          gzip -c examples/sample.seq > data/raw/sample.seq.gz
+          msnbc-modern --input data/raw/sample.seq.gz --output-dir data/derived
+          git diff --exit-code
+          test -z "$(git ls-files --others --exclude-standard)"
